@@ -1,28 +1,41 @@
 package frdomain.ch7
 package streams
 
-import akka.stream.stage.{SyncDirective, Context, StatefulStage}
+import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
+import akka.stream.stage._
 import akka.util.ByteString
 
 import scala.annotation.tailrec
 
 
 object Stages {
-  def parseLines(separator: String, maximumLineBytes: Int) =
-    new StatefulStage[ByteString, String] {
-      private val separatorBytes = ByteString(separator)
-      private val firstSeparatorByte = separatorBytes.head
-      private var buffer = ByteString.empty
-      private var nextPossibleMatch = 0
+  def parseLines(separator: String, maximumLineBytes: Int, name: String = "parseLines") =
+    new GraphStage[FlowShape[ByteString, String]] {
+      val in = Inlet[ByteString](name + ".in")
+      val out = Outlet[String](name + ".out")
 
-      def initial = new State {
-        override def onPush(chunk: ByteString, ctx: Context[String]): SyncDirective = {
-          buffer ++= chunk
-          if (buffer.size > maximumLineBytes)
-            ctx.fail(new IllegalStateException(s"Read ${buffer.size} bytes " +
-              s"which is more than $maximumLineBytes without seeing a line terminator"))
-          else emit(doParse(Vector.empty).iterator, ctx)
-        }
+      override def shape = FlowShape.of(in, out)
+
+      override def createLogic(inheritedAttributes: Attributes) = new GraphStageLogic(shape) {
+        private val separatorBytes = ByteString(separator)
+        private val firstSeparatorByte = separatorBytes.head
+        private var buffer = ByteString.empty
+        private var nextPossibleMatch = 0
+
+        setHandler(in, new InHandler {
+          override def onPush(): Unit = {
+            val chunk = grab(in)
+            buffer ++= chunk
+            if (buffer.size > maximumLineBytes)
+              fail(out, new IllegalStateException(s"Read ${buffer.size} bytes " +
+                s"which is more than $maximumLineBytes without seeing a line terminator"))
+            else emitMultiple(out, doParse(Vector.empty).iterator)
+          }
+        })
+
+        setHandler(out, new OutHandler {
+          override def onPull() = pull(in)
+        })
 
         @tailrec
         private def doParse(parsedLinesSoFar: Vector[String]): Vector[String] = {
