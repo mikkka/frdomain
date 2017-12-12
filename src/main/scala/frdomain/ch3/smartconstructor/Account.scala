@@ -1,8 +1,11 @@
 package frdomain.ch3
 package smartconstructor
 
-import java.util.{ Date, Calendar }
-import util.{ Try, Success, Failure }
+import java.util.{Calendar, Date}
+
+import frdomain.ch3.lens.Lens
+
+import util.{Failure, Success, Try}
 
 object common {
   type Amount = BigDecimal
@@ -63,7 +66,7 @@ final case class SavingsAccount private (no: String, name: String, rateOfInteres
 
 object Account {
   def checkingAccount(no: String, name: String, openDate: Option[Date], closeDate: Option[Date], 
-    balance: Balance): Try[Account] = { 
+    balance: Balance): Try[CheckingAccount] = {
 
     closeDateCheck(openDate, closeDate).map { d =>
       CheckingAccount(no, name, Some(d._1), d._2, balance)
@@ -71,7 +74,7 @@ object Account {
   }
 
   def savingsAccount(no: String, name: String, rate: BigDecimal, openDate: Option[Date], 
-    closeDate: Option[Date], balance: Balance): Try[Account] = { 
+    closeDate: Option[Date], balance: Balance): Try[SavingsAccount] = {
 
     println("in smart")
     closeDateCheck(openDate, closeDate).map { d =>
@@ -94,3 +97,30 @@ object Account {
   }
 }
 
+
+case class Lens[O, V](
+                       get: O => V,
+                       set: (O, V) => Try[O]
+                     )
+
+object Lens {
+  def compose[Outer, Inner, Value](
+                                    outer: Lens[Outer, Inner],
+                                    inner: Lens[Inner, Value]
+                                  ) = Lens[Outer, Value](
+    get = outer.get andThen inner.get,
+    set = (obj, value) => inner.set(outer.get(obj), value).flatMap(outer.set(obj, _))
+  )
+}
+
+object AccountLenses {
+  val noLensCA = Lens[CheckingAccount, String](
+    get = _.no,
+    set = (o, v) => o.copy(no = v)
+  )
+
+  val noLensSA = Lens[SavingsAccount, String](
+    get = _.no,
+    set = (o, v) => o.copy(no = v)
+  )
+}
