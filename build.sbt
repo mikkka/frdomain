@@ -1,3 +1,12 @@
+import sbt.Keys.libraryDependencies
+
+val catsVersion = "1.0.0-RC1"
+val catsAll = Seq(
+  "org.typelevel" %% "cats-core" % catsVersion,
+  "org.typelevel" %% "cats-macros" % catsVersion,
+  "org.typelevel" %% "cats-kernel" % catsVersion
+)
+
 lazy val commonSettings = Seq(
   version := "0.0.1",
   resolvers ++= Seq(
@@ -25,7 +34,7 @@ lazy val commonSettings = Seq(
       "com.zaxxer"                    % "HikariCP-java6"                % "2.3.8",
       "ch.qos.logback"                % "logback-classic"               % "1.1.3",
       "org.scalacheck"               %% "scalacheck"                    % "1.13.4"       % "test"
-    )
+    ) ++ catsAll
 )
 
 lazy val root = (project in file(".")).
