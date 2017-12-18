@@ -3,7 +3,8 @@ package repository
 package reader
 
 import java.util.Date
-import util.{ Try, Success, Failure }
+
+import util.{Failure, Success, Try}
 import common._
 
 trait AccountService[Account, Amount, Balance] {
@@ -57,4 +58,18 @@ object AccountService extends AccountService[Account, Amount, Balance] {
   }
 
   def balance(no: String) = Reader((repo: AccountRepository) => repo.balance(no))
+}
+
+object App {
+  import AccountService._
+
+  def op(no: String) = for {
+    _ <- credit(no, BigDecimal(100))
+    _ <- credit(no, BigDecimal(300))
+    _ <- debit(no, BigDecimal(160))
+    b <- balance(no)
+  } yield b
+
+  val kek = op("42")
+  kek.run(AccountRepositoryInMemory)
 }
