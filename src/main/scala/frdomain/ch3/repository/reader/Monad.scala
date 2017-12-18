@@ -36,12 +36,12 @@ object Monad {
     override def flatMap[A,B](ma: List[A])(f: A => List[B]) = ma flatMap f
   }
 
-  implicit def function1Monad[A1]: Monad[({type f[x] = Function1[A1, x]})#f] = new Monad[({type f[x] = Function1[A1, x]})#f] {
+  implicit def function1Monad[A1]: Monad[(A1) => ?] = new Monad[(A1) => ?] {
     def unit[A](a: => A) = (_: A1) => a
     override def flatMap[A, B](r: A1 => A)(f: A => A1 => B) = (t: A1) => f(r(t))(t)
   }
 
-  implicit def readerMonad[A1]: Monad[({type f[x] = Reader[A1, x]})#f] = new Monad[({type f[x] = Reader[A1, x]})#f] {
+  implicit def readerMonad[A1]: Monad[Reader[A1, ?]] = new Monad[Reader[A1, ?]] {
     override def unit[A](a: => A) = new Reader[A1, A]({_: A1 => a})
 
     override def flatMap[A, B](fa: Reader[A1, A])(f: A => Reader[A1, B]): Reader[A1, B] = fa.flatMap(f)
