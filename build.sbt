@@ -1,6 +1,6 @@
 import sbt.Keys.libraryDependencies
 
-val catsVersion = "1.0.0-RC1"
+val catsVersion = "1.0.0"
 val catsAll = Seq(
   "org.typelevel" %% "cats-core" % catsVersion,
   "org.typelevel" %% "cats-macros" % catsVersion,
