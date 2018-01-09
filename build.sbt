@@ -46,6 +46,7 @@ lazy val root = (project in file(".")).
       "-unchecked",
       "-language:higherKinds",
       "-language:postfixOps",
+      "-Ypartial-unification",
       "-deprecation"
     )
   )
