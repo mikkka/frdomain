@@ -3,9 +3,6 @@ package trading
 
 import java.util.{ Date, Calendar }
 
-import scalaz._
-import Scalaz._
-
 trait TradeModel {this: RefModel =>
 
   case class Trade private[trading] (account: Account, instrument: Instrument, refNo: String, market: Market,
