@@ -2,10 +2,9 @@ package frdomain.ch4
 package patterns
 
 import scala.language.higherKinds
-import java.util.{ Date, Calendar }
 
 import Monoid._
-import scalaz.State
+import cats.data.State
 import State._
 
 object States {
@@ -19,7 +18,7 @@ object States {
     "a5" -> Balance()
   )
 
-  def updateBalance(txns: List[Transaction]) = modify { (b: BS) => 
+  def updateBalance(txns: List[Transaction]): State[BS,Unit] = modify { (b: BS) =>
     txns.foldLeft(b) { (a, txn) =>
       implicitly[Monoid[BS]].op(a, Map(txn.accountNo -> Balance(txn.amount))) 
     }
@@ -37,4 +36,3 @@ object States {
 
   updateBalance(txns) run balances
 }
-

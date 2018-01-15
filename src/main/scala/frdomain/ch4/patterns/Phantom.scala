@@ -6,8 +6,10 @@ import java.util.{ Date, Calendar }
 
 object Loans {
 
-  import scalaz._
-  import Scalaz._
+  import cats._
+  import cats.data._
+  import cats.instances.option._
+  import cats.syntax.option._
 
   val today = Calendar.getInstance.getTime
 
