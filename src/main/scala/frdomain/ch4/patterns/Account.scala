@@ -179,14 +179,16 @@ object Account {
   }
 }
 
-import scalaz._
-import Scalaz._
-
 import frdomain.ch3.repository._
 
 object AccountNumberGeneration {
+  import cats.Monad
+  import cats.data.State
+  import cats.syntax.monad._
+
   final class Generator(rep: AccountRepository) {
     val no: String = scala.util.Random.nextString(10)
+
     def exists: Boolean = rep.query(no) match {
       case Success(Some(a)) => true
       case _ => false
@@ -194,11 +196,15 @@ object AccountNumberGeneration {
   }
 
   def generate(start: Generator, r: AccountRepository): Generator = {
-    val StateGen = StateT.stateMonad[Generator]
-    StateGen.whileM_(
-      StateGen.gets(_.exists),
-      StateGen.modify(_ => new Generator(r)))
-      .exec(start)
+    val mInsState = Monad[State[Generator, ?]]
+
+    val StateGen = State[Generator, String] { init =>
+      (init, init.no)
+    }
+
+    import StateGen._
+    mInsState.whileM_(inspect(_.exists))(modify(_ => new Generator(r)))
+      .run(start).value._1
   }
 }
 
