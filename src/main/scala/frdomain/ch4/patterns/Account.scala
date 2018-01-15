@@ -44,45 +44,47 @@ object Account {
    * Uses Applicative instance of ValidationNEL which accumulates errors using Semigroup
    */
   object FailSlowApplicative {
-    import scalaz._
-    import syntax.apply._, syntax.std.option._, syntax.validation._
+    import cats.data._
+    import cats.syntax.apply._
+    import cats.syntax.option._
+    import cats.syntax.validated._
 
     private def validateAccountNo(no: String) = 
-      if (no.isEmpty || no.size < 5) s"Account No has to be at least 5 characters long: found $no".failureNel[String] 
-      else no.successNel[String]
+      if (no.isEmpty || no.size < 5) s"Account No has to be at least 5 characters long: found $no".invalidNel[String]
+      else no.validNel[String]
   
     private def validateOpenCloseDate(od: Date, cd: Option[Date]) = cd.map { c => 
-      if (c before od) s"Close date [$c] cannot be earlier than open date [$od]".failureNel[(Option[Date], Option[Date])]
-      else (od.some, cd).successNel[String]
-    }.getOrElse { (od.some, cd).successNel[String] }
+      if (c before od) s"Close date [$c] cannot be earlier than open date [$od]".invalidNel[(Option[Date], Option[Date])]
+      else (od.some, cd).validNel[String]
+    }.getOrElse { (od.some, cd).validNel[String] }
   
     private def validateRate(rate: BigDecimal) =
-      if (rate <= BigDecimal(0)) s"Interest rate $rate must be > 0".failureNel[BigDecimal]
-      else rate.successNel[String]
+      if (rate <= BigDecimal(0)) s"Interest rate $rate must be > 0".invalidNel[BigDecimal]
+      else rate.validNel[String]
   
     def checkingAccount(no: String, name: String, openDate: Option[Date], closeDate: Option[Date], 
-      balance: Balance): Validation[NonEmptyList[String], Account] = { 
+      balance: Balance): ValidatedNel[String, CheckingAccount] = {
   
       val od = openDate.getOrElse(today)
   
       (
-        validateAccountNo(no) |@| 
+        validateAccountNo(no),
         validateOpenCloseDate(openDate.getOrElse(today), closeDate)
-      ) { (n, d) =>
+      ).mapN { (n, d) =>
         CheckingAccount(n, name, d._1, d._2, balance)
       }
     }
   
     def savingsAccount(no: String, name: String, rate: BigDecimal, openDate: Option[Date], 
-      closeDate: Option[Date], balance: Balance): Validation[NonEmptyList[String], Account] = { 
+      closeDate: Option[Date], balance: Balance): ValidatedNel[String, SavingsAccount] = {
   
       val od = openDate.getOrElse(today)
   
       (
-        validateAccountNo(no) |@| 
-        validateOpenCloseDate(openDate.getOrElse(today), closeDate) |@|
+        validateAccountNo(no),
+        validateOpenCloseDate(openDate.getOrElse(today), closeDate),
         validateRate(rate)
-      ) { (n, d, r) =>
+      ).mapN { (n, d, r) =>
         SavingsAccount(n, name, r, d._1, d._2, balance)
       }
     }
@@ -93,8 +95,9 @@ object Account {
    * nature it will invoke validations for all the items. So not truly fail fast - fail slow but non-accumulating.
    */
   object FailFastApplicative {
-    import scalaz._
-    import syntax.apply._, syntax.std.option._, std.either._
+    import cats.instances.either._
+    import cats.syntax.apply._
+    import cats.syntax.option._
 
     private def validateAccountNo(no: String): Either[String, String] =
       if (no.isEmpty || no.size < 5) Left(s"Account No has to be at least 5 characters long: found $no")
@@ -114,7 +117,7 @@ object Account {
       val cd = closeDate.getOrElse(today)
       val od = openDate.getOrElse(today)
   
-      (validateAccountNo(no) |@| validateOpenCloseDate(od, cd)) { (n, d) =>
+      (validateAccountNo(no), validateOpenCloseDate(od, cd)).mapN{ (n, d) =>
         CheckingAccount(n, name, d._1.some, d._2.some, balance)
       }
     }
@@ -125,7 +128,7 @@ object Account {
       val cd = closeDate.getOrElse(today)
       val od = openDate.getOrElse(today)
   
-      (validateAccountNo(no) |@| validateOpenCloseDate(od, cd) |@| validateRate(rate)) { (n, d, r) =>
+      (validateAccountNo(no), validateOpenCloseDate(od, cd), validateRate(rate)).mapN{ (n, d, r) =>
         SavingsAccount(n, name, r, d._1.some, d._2.some, balance)
       }
     }
@@ -135,8 +138,7 @@ object Account {
    * Uses monad instance of Either which does not accumulate errors. True fail-fast.
    */
   object FailFastMonad {
-    import scalaz._
-    import syntax.std.option._
+    import cats.syntax.option._
 
     private def validateAccountNo(no: String): Either[String, String] =
       if (no.isEmpty || no.size < 5) Left(s"Account No has to be at least 5 characters long: found $no")
@@ -179,6 +181,7 @@ object Account {
 
 import scalaz._
 import Scalaz._
+
 import frdomain.ch3.repository._
 
 object AccountNumberGeneration {
@@ -192,9 +195,10 @@ object AccountNumberGeneration {
 
   def generate(start: Generator, r: AccountRepository): Generator = {
     val StateGen = StateT.stateMonad[Generator]
-    import StateGen._ // includes whileM_, gets, put
-    whileM_(gets(_.exists), modify(_ => new Generator(r))).exec(start)
+    StateGen.whileM_(
+      StateGen.gets(_.exists),
+      StateGen.modify(_ => new Generator(r)))
+      .exec(start)
   }
 }
-
 
