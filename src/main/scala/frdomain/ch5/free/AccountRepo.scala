@@ -1,7 +1,7 @@
 package frdomain.ch5
 package free
 
-import scalaz.Free
+import cats.free.Free
 
 import common._
 

@@ -2,8 +2,6 @@ package frdomain.ch5
 package free
 
 import java.util.Date
-import scalaz._
-import Scalaz._
 import common._
 
 trait AccountService[Account, Amount, Balance] {
