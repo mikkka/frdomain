@@ -2,9 +2,8 @@ package frdomain.ch5
 package domain
 package app
 
-import scalaz._
-import Scalaz._
-import Kleisli._
+import cats.syntax.option._
+import cats.instances.either._
 
 import service.interpreter.{ AccountService, InterestPostingService, ReportingService }
 import repository.interpreter.AccountRepositoryInMemory
@@ -27,7 +26,7 @@ object App {
   def composite(no: String, name: String, cr: Amount, db: Amount) = (for {
     a <- open(no, name, BigDecimal(0.4).some, None, Savings)
     t <- postTransactions(a, cr, db)
-  } yield t) >=> computeInterest >=> computeTax
+  } yield t) andThen computeInterest andThen computeTax
 
   val x = composite("a-123", "debasish ghosh", 10000, 2000)(AccountRepositoryInMemory)
 

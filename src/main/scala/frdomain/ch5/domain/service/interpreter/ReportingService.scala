@@ -3,20 +3,18 @@ package domain
 package service
 package interpreter
 
-import scalaz._
-import Scalaz._
-import Kleisli._
-
+import cats.data.Kleisli
+import cats.syntax.either._
 import repository.AccountRepository
 import model.common._
 
 
 class ReportingServiceInterpreter extends ReportingService[Amount] {
 
-  def balanceByAccount: ReportOperation[Seq[(String, Amount)]] = kleisli { (repo: AccountRepository) =>
+  def balanceByAccount: ReportOperation[Seq[(String, Amount)]] = Kleisli { (repo: AccountRepository) =>
     repo.all match {
-      case \/-(as) => as.map(a => (a.no, a.balance.amount)).right
-      case a @ -\/(_) => a
+      case Right(as) => as.map(a => (a.no, a.balance.amount)).asRight
+      case Left(a) => a.asLeft
     }
   }
 } 

@@ -3,12 +3,11 @@ package domain
 package service
 
 import java.util.Date
-import scalaz._
-import Scalaz._
-import Kleisli._
+
+import cats.data.Kleisli
+import cats.instances.either._
 
 import repository.AccountRepository
-
 
 sealed trait AccountType
 case object Checking extends AccountType
@@ -28,9 +27,10 @@ trait AccountService[Account, Amount, Balance] {
 
   def balance(no: String): AccountOperation[Balance]
 
-  def transfer(from: String, to: String, amount: Amount): AccountOperation[(Account, Account)] = for { 
-    a <- debit(from, amount)
-    b <- credit(to, amount)
-  } yield ((a, b))
+  def transfer(from: String, to: String, amount: Amount): AccountOperation[(Account, Account)] = {
+    for {
+      a <- debit(from, amount)
+      b <- credit(to, amount)
+    } yield ((a, b))
+  }
 }
-

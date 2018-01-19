@@ -1,9 +1,8 @@
 package frdomain.ch5
 package domain
 
-import scalaz._
-import Scalaz._
+import cats.data.NonEmptyList
 
 package object service {
-  type Valid[A] = NonEmptyList[String] \/ A
+  type Valid[A] = Either[NonEmptyList[String], A]
 }
