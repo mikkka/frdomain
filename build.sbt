@@ -4,7 +4,9 @@ val catsVersion = "1.0.0"
 val catsAll = Seq(
   "org.typelevel" %% "cats-core" % catsVersion,
   "org.typelevel" %% "cats-macros" % catsVersion,
-  "org.typelevel" %% "cats-kernel" % catsVersion
+  "org.typelevel" %% "cats-kernel" % catsVersion,
+  "org.typelevel" %% "cats-free" % catsVersion,
+  "org.typelevel" %% "cats-effect" % "0.7"
 )
 
 lazy val commonSettings = Seq(
