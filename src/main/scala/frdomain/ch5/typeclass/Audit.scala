@@ -18,11 +18,6 @@ import common._
 
 case class Balance(amount: Amount = 0)
 
-case class Account(no: String, name: String, dateOfOpening: Date = today, dateOfClosing: Option[Date] = None, 
-  balance: Balance = Balance(0)) extends Show[Account] {
-  def shows(a: Account) = Success(a.toString)
-}
-
 case class Account1(no: String, name: String, dateOfOpening: Date = today, dateOfClosing: Option[Date] = None, 
   balance: Balance = Balance(0))
 

@@ -3,19 +3,24 @@ package free
 
 import scala.collection.mutable.{Map => MMap}
 import cats.effect.IO
-import cats.~>
+import cats.{Monad, ~>}
 import cats.syntax.functor._
 import cats.data.State
 
-trait AccountRepoInterpreter {
-  def apply[A](action: AccountRepo[A]): IO[A]
+trait AccountRepoInterpreter[M[_]] {
+  implicit def ev: Monad[M]
+
+  def step: AccountRepoF ~> M
+  def apply[A](action: AccountRepo[A]): M[A] = action.foldMap(step)
 }
   
 /**
  * Basic interpreter that uses a global mutable Map to store the state
  * of computation
  */
-case class AccountRepoMutableInterpreter() extends AccountRepoInterpreter {
+case class AccountRepoMutableInterpreter() extends AccountRepoInterpreter[IO] {
+  override implicit def ev: Monad[IO] = implicitly[Monad[IO]]
+
   val table: MMap[String, Account] = MMap.empty[String, Account]
 
   val step: AccountRepoF ~> IO = new (AccountRepoF ~> IO) {
@@ -32,12 +37,17 @@ case class AccountRepoMutableInterpreter() extends AccountRepoInterpreter {
   /**
    * Turns the AccountRepo script into a `Task` that executes it in a mutable setting
    */
-  def apply[A](action: AccountRepo[A]): IO[A] = action.foldMap(step)
+//  def apply[A](action: AccountRepo[A]): IO[A] = action.foldMap(step)
 }
 
-case class AccountRepoShowInterpreter() {
-
+object AccountRepoShowInterpreter {
   type ListState[A] = State[List[String], A]
+}
+
+import AccountRepoShowInterpreter._
+
+case class AccountRepoShowInterpreter() extends AccountRepoInterpreter[ListState] {
+  override implicit def ev: Monad[ListState] = implicitly[Monad[ListState]]
 
   val step: AccountRepoF ~> ListState = new (AccountRepoF ~> ListState) {
     private def show(s: String): ListState[Unit] =
@@ -52,6 +62,8 @@ case class AccountRepoShowInterpreter() {
         show(s"Deleting $no")
     }
   }
+
+//  def apply[A](action: AccountRepo[A]): ListState[A] = action.foldMap(step)
 
   def interpret[A](script: AccountRepo[A], ls: List[String]): List[String] =
     script.foldMap(step).run(ls).value._1
