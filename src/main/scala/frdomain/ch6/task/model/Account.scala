@@ -3,8 +3,7 @@ package task
 package model
 
 import java.util.{ Date, Calendar }
-import scalaz._
-import Scalaz._
+import cats.syntax.option._
 
 object common {
   type Amount = BigDecimal

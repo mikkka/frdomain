@@ -5,46 +5,40 @@ package interpreter
 
 import java.util.{ Date, Calendar }
 
-import scalaz._
-import Scalaz._
-import scalaz.concurrent.Task
-import \/._
-import Kleisli._
+import cats.data.Kleisli
+import cats.effect.IO
 
 import model._
 import model.common._
 import repository.AccountRepository
 
 class PortfolioServiceInterpreter extends PortfolioService {
-  def getCurrencyPortfolio(no: String, 
-    asOf: Date) = kleisli[Task, AccountRepository, Seq[Balance]] { (repo: AccountRepository) =>
+  def getCurrencyPortfolio(no: String, asOf: Date) = Kleisli[IO, AccountRepository, List[Balance]] { (repo: AccountRepository) =>
 
-    Task {
+    IO {
       repo.getCurrencyBalance(no, asOf) match {
-        case \/-(b) => b
-        case -\/(_) => throw new Exception(s"Failed to fetch currency balance")
+        case Right(b) => b
+        case Left(_) => throw new Exception(s"Failed to fetch currency balance")
       }
     }
   }
 
-  def getEquityPortfolio(no: String, 
-    asOf: Date) = kleisli[Task, AccountRepository, Seq[Balance]] { (repo: AccountRepository) =>
+  def getEquityPortfolio(no: String, asOf: Date) = Kleisli[IO, AccountRepository, List[Balance]] { (repo: AccountRepository) =>
 
-    Task {
+    IO {
       repo.getEquityBalance(no, asOf) match {
-        case \/-(b) => b
-        case -\/(_) => throw new Exception(s"Failed to fetch equity balance")
+        case Right(b) => b
+        case Left(_) => throw new Exception(s"Failed to fetch equity balance")
       }
     }
   }
 
-  def getFixedIncomePortfolio(no: String, 
-    asOf: Date) = kleisli[Task, AccountRepository, Seq[Balance]] { (repo: AccountRepository) =>
+  def getFixedIncomePortfolio(no: String,asOf: Date) = Kleisli[IO, AccountRepository, List[Balance]] { (repo: AccountRepository) =>
 
-    Task {
+    IO {
       repo.getFixedIncomeBalance(no, asOf) match {
-        case \/-(b) => b
-        case -\/(_) => throw new Exception(s"Failed to fetch fixed income balance")
+        case Right(b) => b
+        case Left(_) => throw new Exception(s"Failed to fetch fixed income balance")
       }
     }
   }

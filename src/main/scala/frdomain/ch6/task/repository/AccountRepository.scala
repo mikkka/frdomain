@@ -3,19 +3,18 @@ package task
 package repository
 
 import java.util.Date
-import scalaz._
-import Scalaz._
-import \/._
+
+import cats.data.NonEmptyList
 import model._
 
 trait AccountRepository { 
-  def query(no: String): \/[NonEmptyList[String], Option[Account]]
-  def store(a: Account): \/[NonEmptyList[String], Account]
-  def query(openedOn: Date): \/[NonEmptyList[String], Seq[Account]]
-  def all: \/[NonEmptyList[String], Seq[Account]]
+  def query(no: String): Either[NonEmptyList[String], Option[Account]]
+  def store(a: Account): Either[NonEmptyList[String], Account]
+  def query(openedOn: Date): Either[NonEmptyList[String], Seq[Account]]
+  def all: Either[NonEmptyList[String], Seq[Account]]
 
-  def getCurrencyBalance(no: String, asOf: Date): String \/ Seq[Balance]
-  def getEquityBalance(no: String, asOf: Date): String \/ Seq[Balance]
-  def getFixedIncomeBalance(no: String, asOf: Date): String \/ Seq[Balance]
+  def getCurrencyBalance(no: String, asOf: Date): Either[String,List[Balance]]
+  def getEquityBalance(no: String, asOf: Date): Either[String,List[Balance]]
+  def getFixedIncomeBalance(no: String, asOf: Date): Either[String,List[Balance]]
 }
 
