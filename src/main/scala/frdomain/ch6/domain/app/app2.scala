@@ -2,9 +2,7 @@ package frdomain.ch6
 package domain
 package app
 
-import scalaz._
-import Scalaz._
-import \/._
+import cats.syntax.option._
 
 import repository.interpreter.AccountRepositoryInMemory
 import model.common._

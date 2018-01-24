@@ -3,14 +3,13 @@ package domain
 package service
 
 import java.util.Date
-import scalaz._
-import Scalaz._
-import Kleisli._
 
+import cats.data.Kleisli
 import repository.AccountRepository
+import cats.instances.future._
+
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-
 
 sealed trait AccountType
 case object Checking extends AccountType

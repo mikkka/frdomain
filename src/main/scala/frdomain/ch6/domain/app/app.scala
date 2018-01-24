@@ -2,11 +2,11 @@ package frdomain.ch6
 package domain
 package app
 
-import scalaz._
-import Scalaz._
-import Kleisli._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
+
+import cats.syntax.option._
+import cats.instances.future._
 
 import service.interpreter.{ AccountService, InterestPostingService, ReportingService }
 import repository.interpreter.AccountRepositoryInMemory
