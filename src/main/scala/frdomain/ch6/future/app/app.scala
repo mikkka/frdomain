@@ -2,9 +2,6 @@ package frdomain.ch6
 package future
 package app
 
-import scalaz._
-import Scalaz._
-import Kleisli._
 import scala.concurrent._
 import scala.concurrent.duration._
 import ExecutionContext.Implicits.global

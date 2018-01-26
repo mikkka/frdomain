@@ -6,13 +6,6 @@ import java.util.Date
 import cats.data.Kleisli
 import cats.effect.IO
 
-/*
-import scalaz._
-import Scalaz._
-import scalaz.concurrent.Task
-import Kleisli._
-*/
-
 import scala.language.higherKinds
 import repository.AccountRepository
 import model._
