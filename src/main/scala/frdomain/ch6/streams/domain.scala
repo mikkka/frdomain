@@ -6,10 +6,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Future, ExecutionContext }
 import scala.collection.immutable._
 
-import scalaz._
-import Scalaz._
-
 import common._
+
+import cats.Monoid
+import cats.syntax.option._
 
 sealed trait TransactionType
 case object Debit extends TransactionType
@@ -18,9 +18,9 @@ case object Credit extends TransactionType
 case class Transaction(id: String, accountNo: String, debitCredit: TransactionType, amount: Amount, date: Date = today)
 
 object Transaction {
-  implicit val TransactionMonoid = new Monoid[Transaction] {
-    val zero = Transaction("", "", Debit, 0)
-    def append(i: Transaction, j: => Transaction) = { 
+  implicit val TransactionMonoid: Monoid[Transaction] = new Monoid[Transaction] {
+    override val empty = Transaction("", "", Debit, 0)
+    override def combine(i: Transaction, j: Transaction): Transaction = {
       val f = if (i.debitCredit == Debit) -i.amount else i.amount
       val s = if (j.debitCredit == Debit) -j.amount else j.amount
       val sum = f + s

@@ -2,9 +2,6 @@ package frdomain.ch6
 package streams
 
 import java.util.{ Date, Calendar }
-import util.{ Try, Success, Failure }
-import scalaz._
-import Scalaz._
 
 object common {
   type Amount = BigDecimal

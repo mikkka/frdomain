@@ -1,8 +1,9 @@
 package frdomain.ch6
 package streams
 
-import scalaz.{ Source => Sourcez, Sink => Sinkz, _ }
-import Scalaz._
+
+import cats.instances.map._
+import cats.syntax.monoid._
 
 import akka.actor.ActorSystem
 import akka.stream.scaladsl._
@@ -16,7 +17,7 @@ import common._
 import OnlineService._
 import Transaction._
 
-object Main {
+object Main extends App {
   implicit val as = ActorSystem()
   implicit val ec = as.dispatcher
   val settings = ActorMaterializerSettings(as)
@@ -59,7 +60,7 @@ object Main {
   val netTxn: RunnableGraph[Future[akka.Done]] = 
     transactions.map(validate)
                 .groupBy(MaxGroupCount, _.accountNo)
-                .fold(TransactionMonoid.zero)(_ |+| _)
+                .fold(TransactionMonoid.empty)(_ |+| _)
                 // .async
                 .mergeSubstreams
                 .toMat(txnSink)(Keep.right)
@@ -87,6 +88,6 @@ object Main {
     ClosedShape
   })
 
-  // val r = graph.run()
-  // r foreach println
+   val r = graph.run()
+  r foreach println
 }
