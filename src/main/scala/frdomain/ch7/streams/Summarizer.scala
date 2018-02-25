@@ -60,6 +60,11 @@ object Summarizer {
           updateBalance(grab(txIn))
           tryPull(txIn)
         }
+
+        override def onUpstreamFinish(): Unit = {
+          emit(out, balance.toMap)
+          completeStage()
+        }
       })
 
       setHandler(cmdIn, new InHandler {
@@ -67,19 +72,17 @@ object Summarizer {
           grab(cmdIn)
           if (isAvailable(out))
             push(out, balance.toMap)
-          tryPull(cmdIn)
         }
       })
 
       setHandler(out, new OutHandler {
         override def onPull(): Unit = {
-          //nthng!!!???
+          tryPull(cmdIn)
         }
       })
 
       override def preStart(): Unit = {
         tryPull(txIn)
-        tryPull(cmdIn)
       }
     }
   }
