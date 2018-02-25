@@ -2,15 +2,14 @@ package frdomain.ch7
 package streams
 
 import java.util.Date
+
 import scala.concurrent.duration._
-import scala.concurrent.{ Future, ExecutionContext }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.immutable._
+import java.util.{Calendar, Date}
 
-import scalaz._
-import Scalaz._
-
-import java.util.{ Date, Calendar }
+import cats.Monoid
 
 object common {
   type Amount = BigDecimal
@@ -60,8 +59,8 @@ object Transaction {
   }
 
   implicit val TransactionMonoid = new Monoid[Transaction] {
-    val zero = Transaction("", "", Debit, 0)
-    def append(i: Transaction, j: => Transaction) = {
+    val empty = Transaction("", "", Debit, 0)
+    def combine(i: Transaction, j: Transaction) = {
       val f = if (i.debitCredit == Debit) -i.amount else i.amount
       val s = if (j.debitCredit == Debit) -j.amount else j.amount
       val sum = f + s
@@ -75,8 +74,8 @@ case class Balance(amount: Amount, debitCredit: TransactionType)
 
 object Balance {
   implicit val BalanceMonoid = new Monoid[Balance] {
-    val zero = Balance(0, Debit)
-    def append(i: Balance, j: => Balance) = (i.debitCredit, j.debitCredit) match {
+    val empty = Balance(0, Debit)
+    def combine(i: Balance, j: Balance) = (i.debitCredit, j.debitCredit) match {
       case (Debit, Debit)                         => Balance(i.amount + j.amount, Debit)
       case (Credit, Credit)                       => Balance(i.amount + j.amount, Credit)
       case (Debit, Credit) if i.amount > j.amount => Balance(i.amount - j.amount, Debit)
@@ -87,5 +86,6 @@ object Balance {
   }
 }
 
-object LogSummaryBalance
+trait LogCmd
+case object LogSummaryBalance extends LogCmd
 

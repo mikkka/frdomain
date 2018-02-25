@@ -7,7 +7,7 @@ import java.nio.charset._
 import scala.util.Random
 import scala.collection.JavaConverters._
 
-object Gen {
+object Gen extends App {
 
   val accounts = Vector("a-123", "a-234", "a-345", "a-456")
   val amounts = Vector(100, 200, 300, 400, 500).map(BigDecimal(_))
@@ -18,8 +18,10 @@ object Gen {
   }
 
   def generate() = {
-    val path = "/Users/debasishghosh/projects/frdomain/src/main/resources/transactions.csv"
+    val path = s"${System.getProperty("user.home")}/tmp/transactions.csv"
     val p = Files.write(Paths.get(path), records.toIterable.asJava, Charset.defaultCharset)
     println(s"** p = $p")
   }
+
+  generate()
 }

@@ -7,8 +7,7 @@ import akka.stream.actor.{ActorSubscriber, MaxInFlightRequestStrategy}
 
 import scala.collection.mutable.{ Map => MMap }
 
-import scalaz._
-import Scalaz._
+import cats.syntax.monoid._
 
 class SummarizerPersistent extends PersistentActor with ActorSubscriber with Logging {
   private val balance = MMap.empty[String, Balance]

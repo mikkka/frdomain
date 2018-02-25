@@ -25,10 +25,10 @@ object FrontOffice extends App with Logging {
   implicit val system = ActorSystem("front_office")
   val serverConnection = Tcp().outgoingConnection("127.0.0.1", 9982)
 
-  val path = "/Users/debasishghosh/projects/frdomain/src/main/resources/transactions.csv"
+  val path = s"${System.getProperty("user.home")}/tmp/transactions.csv"
   val getLines = () => scala.io.Source.fromFile(path).getLines()
 
-  val readLines = Source.fromIterator(getLines).filter(isValid).map(l => ByteString(l + "\n"))
+  val readLines = Source.fromIterator(getLines).filter(isValid).map(l => ByteString(l + "\n")).throttle(1, 500.millis, 1, ThrottleMode.shaping)
 
   def isValid(line: String) = true
 
@@ -40,12 +40,15 @@ object FrontOffice extends App with Logging {
     val broadcast = b.add(Broadcast[ByteString](2))
 
     val heartbeat = Flow[ByteString]
-      .groupedWithin(10000, 1.seconds)
+      .groupedWithin(10000, 500.millis)
       .map(_.map(_.size).foldLeft(0)(_ + _))
       .map(groupSize => logger.info(s"Sent $groupSize bytes"))
 
-    readLines ~> broadcast ~> serverConnection ~> logWhenComplete
-                 broadcast ~> heartbeat        ~> Sink.ignore
+    readLines ~> broadcast
+
+    broadcast ~> serverConnection ~> logWhenComplete
+    broadcast ~> heartbeat        ~> Sink.ignore
+
     ClosedShape
   })
 
