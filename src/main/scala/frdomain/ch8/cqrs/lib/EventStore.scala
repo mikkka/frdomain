@@ -2,8 +2,7 @@ package frdomain.ch8
 package cqrs.lib
 
 import collection.concurrent.TrieMap
-import scalaz._
-import Scalaz._
+import cats.syntax.either._
 
 import Common._
 import spray.json._
@@ -17,17 +16,17 @@ trait EventStore[K] {
   /**
    * puts a `key` and its associated `event`
    */
-  def put(key: K, event: Event[_]): Error \/ Event[_]
+  def put(key: K, event: Event[_]): Either[Error, Event[_]]
 
   /**
    * similar to `get` but returns an error if the `key` is not found
    */
-  def events(key: K): Error \/ List[Event[_]]
+  def events(key: K): Either[Error, List[Event[_]]]
   
   /**
    * get all ids from the event store
    */
-  def allEvents: Error \/ List[Event[_]]
+  def allEvents: Either[Error, List[Event[_]]]
 }
 
 /**
@@ -38,17 +37,17 @@ object InMemoryEventStore {
     val eventLog = TrieMap[K, List[Event[_]]]() 
 
     def get(key: K): List[Event[_]] = eventLog.get(key).getOrElse(List.empty[Event[_]])
-    def put(key: K, event: Event[_]): Error \/ Event[_] = {
+    def put(key: K, event: Event[_]): Either[Error, Event[_]] = {
       val currentList = eventLog.getOrElse(key, Nil)
       eventLog += (key -> (event :: currentList))
-      event.right
+      event.asRight
     }
-    def events(key: K): Error \/ List[Event[_]] = {
+    def events(key: K): Either[Error, List[Event[_]]] = {
       val currentList = eventLog.getOrElse(key, Nil)
-      if (currentList.isEmpty) s"Aggregate $key does not exist".left
-      else currentList.right
+      if (currentList.isEmpty) s"Aggregate $key does not exist".asLeft
+      else currentList.asRight
     }
-    def allEvents: Error \/ List[Event[_]] = eventLog.values.toList.flatten.right
+    def allEvents: Either[Error, List[Event[_]]] = eventLog.values.toList.flatten.asRight
   }
 }
       
@@ -63,17 +62,17 @@ trait InMemoryJSONEventStore {
     def get(key: K): List[Event[_]] = 
       eventLog.get(key).map(ls => ls.map(_.parseJson.convertTo[Event[_]])).getOrElse(List.empty[Event[_]])
 
-    def put(key: K, event: Event[_]): Error \/ Event[_] = {
+    def put(key: K, event: Event[_]): Either[Error, Event[_]] = {
       val currentList = eventLog.getOrElse(key, Nil)
       eventLog += (key -> (eventJsonFormat.write(event).toString :: currentList))
-      event.right
+      event.asRight
     }
-    def events(key: K): Error \/ List[Event[_]] = {
+    def events(key: K): Either[Error, List[Event[_]]] = {
       val currentList = eventLog.getOrElse(key, Nil)
-      if (currentList.isEmpty) s"Aggregate $key does not exist".left
-      else currentList.map(js => js.parseJson.convertTo[Event[_]]).right
+      if (currentList.isEmpty) s"Aggregate $key does not exist".asLeft
+      else currentList.map(js => js.parseJson.convertTo[Event[_]]).asRight
     }
-    def allEvents: Error \/ List[Event[_]] = eventLog.values.toList.flatten.map(_.parseJson.convertTo[Event[_]]).right
+    def allEvents: Either[Error, List[Event[_]]] = eventLog.values.toList.flatten.map(_.parseJson.convertTo[Event[_]]).asRight
   }
 }
       

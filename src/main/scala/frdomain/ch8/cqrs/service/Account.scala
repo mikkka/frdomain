@@ -2,9 +2,7 @@ package frdomain.ch8
 package cqrs
 package service
 
-import scalaz._
-import Scalaz._
-
+import cats.Show
 import org.joda.time.DateTime
 import cqrs.lib.Aggregate
 
@@ -26,7 +24,7 @@ case class Account(no: String, name: String, dateOfOpening: DateTime = today, da
 }
 
 object Account {
-  implicit val showAccount: Show[Account] = Show.shows { case a: Account => a.toString }
+  implicit val showAccount: Show[Account] = Show.show { case a: Account => a.toString }
 }
 
 

@@ -4,7 +4,9 @@ package pure
 
 import java.util.Date
 
-import scalaz.{~>, State, Free}
+import cats.data.State
+import cats.free.Free
+import cats.~>
 import common._
 
 sealed trait Event[A]
@@ -101,7 +103,7 @@ object PureInterpreter {
   }
 
   def interpret[A](c: Command[A], state: Map[String, Account] = Map.empty): Map[String, Account] =
-    c.foldMap(step).exec(state)
+    c.foldMap(step).run(state).value._1
 
 }
 

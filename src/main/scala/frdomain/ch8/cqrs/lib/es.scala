@@ -1,11 +1,11 @@
 package frdomain.ch8
 package cqrs.lib
 
+import cats.free.Free
 import org.joda.time.DateTime
-import scalaz._
-import Scalaz._
-import scalaz.concurrent.Task
-import \/._
+import cats.syntax.either._
+import cats.~>
+import monix.eval.Task
 
 object Common {
   type AggregateId = String
@@ -31,8 +31,8 @@ trait Aggregate {
 trait Snapshot[A <: Aggregate] {
   def updateState(e: Event[_], initial: Map[String, A]): Map[String, A]
 
-  def snapshot(es: List[Event[_]]): String \/ Map[String, A] = 
-    es.reverse.foldLeft(Map.empty[String, A]) { (a, e) => updateState(e, a) }.right
+  def snapshot(es: List[Event[_]]): Either[String, Map[String, A]] =
+    es.reverse.foldLeft(Map.empty[String, A]) { (a, e) => updateState(e, a) }.asRight
 }
 
 trait Commands[A] {

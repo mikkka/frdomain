@@ -3,16 +3,16 @@ package cqrs
 package memrepo
 
 import org.joda.time.DateTime
-import scalaz._
-import Scalaz._
-import scalaz.concurrent.Task
-import Task._
+import cats.syntax.either._
 
 import collection.concurrent.TrieMap
-
 import common._
 import spray.json._
 import JSONProtocols._
+import cats.free.Free
+import cats.~>
+import monix.eval.Task
+import monix.eval.Task.{now, raiseError}
 
 trait Event[A] {
   def at: DateTime
@@ -44,34 +44,34 @@ object Event {
       initial + (no -> a.copy(balance = Balance(a.balance.amount + amount)))
   }
 
-  def events(no: String): Error \/ List[Event[_]] = {
+  def events(no: String): Either[Error, List[Event[_]]] = {
     val currentList = eventLog.getOrElse(no, Nil)
-    if (currentList.isEmpty) s"Account $no does not exist".left
-    else currentList.right
+    if (currentList.isEmpty) s"Account $no does not exist".asLeft
+    else currentList.asRight
   }
 
-  def snapshot(es: List[Event[_]]): String \/ Map[String, Account] = 
-    es.reverse.foldLeft(Map.empty[String, Account]) { (a, e) => updateState(e, a) }.right
+  def snapshot(es: List[Event[_]]): Either[String, Map[String, Account]] =
+    es.reverse.foldLeft(Map.empty[String, Account]) { (a, e) => updateState(e, a) }.asRight
 
-  def snapshotFromJson(es: List[String]): String \/ Map[String, Account] = 
-    es.reverse.foldLeft(Map.empty[String, Account]) { (a, e) => updateState(e.parseJson.convertTo[Event[_]], a) }.right
+  def snapshotFromJson(es: List[String]): Either[String, Map[String, Account]] =
+    es.reverse.foldLeft(Map.empty[String, Account]) { (a, e) => updateState(e.parseJson.convertTo[Event[_]], a) }.asRight
 }
 
 object Commands extends Commands {
   import Event._
 
-  def closed(a: Account): Error \/ Account =
-    if (a.dateOfClosing isDefined) s"Account ${a.no} is closed".left
-    else a.right
+  def closed(a: Account): Either[Error, Account] =
+    if (a.dateOfClosing isDefined) s"Account ${a.no} is closed".asLeft
+    else a.asRight
 
-  def beforeOpeningDate(a: Account, cd: Option[DateTime]): Error \/ Account =
+  def beforeOpeningDate(a: Account, cd: Option[DateTime]): Either[Error, Account] =
     if (a.dateOfOpening isBefore cd.getOrElse(today)) 
-      s"Cannot close at a date earlier than opening date ${a.dateOfOpening}".left
-    else a.right
+      s"Cannot close at a date earlier than opening date ${a.dateOfOpening}".asLeft
+    else a.asRight
 
-  def sufficientFundsToDebit(a: Account, amount: Amount): Error \/ Account =
-    if (a.balance.amount < amount) s"insufficient fund to debit $amount from ${a.no}".left
-    else a.right
+  def sufficientFundsToDebit(a: Account, amount: Amount): Either[Error, Account] =
+    if (a.balance.amount < amount) s"insufficient fund to debit $amount from ${a.no}".asLeft
+    else a.asRight
 
   def validateClose(no: String, cd: Option[DateTime]) = for {
     l <- events(no)
@@ -95,14 +95,14 @@ object Commands extends Commands {
 
   def validateOpen(no: String) =
     eventLog.get(no)
-            .map { _ => s"Account with no = $no already exists".left }
-            .getOrElse(no.right)
+            .map { _ => s"Account with no = $no already exists".asLeft }
+            .getOrElse(no.asRight)
     
     
   def handleCommand[A](e: Event[A]): Task[A] = e match {
 
     case o @ Opened(no, name, odate, _) => validateOpen(no).fold(
-      err => fail(new RuntimeException(err)),
+      err => raiseError(new RuntimeException(err)),
       _   => now {
         val a = Account(no, name, odate.get)
         eventLog += (no -> List(o))
@@ -112,7 +112,7 @@ object Commands extends Commands {
     )
 
     case c @ Closed(no, cdate, _) => validateClose(no, cdate).fold(
-      err => fail(new RuntimeException(err)),
+      err => raiseError(new RuntimeException(err)),
       currentState => now {
         eventLog += (no -> (c :: eventLog.getOrElse(no, Nil)))
         eventLogJson += (no -> (ClosedFormat.write(c).toString :: eventLogJson.getOrElse(no, Nil)))
@@ -121,7 +121,7 @@ object Commands extends Commands {
     )
 
     case d @ Debited(no, amount, _) => validateDebit(no, amount).fold(
-      err => fail(new RuntimeException(err)),
+      err => raiseError(new RuntimeException(err)),
       currentState => now {
         eventLog += (no -> (d :: eventLog.getOrElse(no, Nil)))
         eventLogJson += (no -> (DebitedFormat.write(d).toString :: eventLogJson.getOrElse(no, Nil)))
@@ -130,7 +130,7 @@ object Commands extends Commands {
     )
 
     case r @ Credited(no, amount, _) => validateCredit(no).fold(
-      err => fail(new RuntimeException(err)),
+      err => raiseError(new RuntimeException(err)),
       currentState => now {
         eventLog += (no -> (r :: eventLog.getOrElse(no, Nil)))
         eventLogJson += (no -> (CreditedFormat.write(r).toString :: eventLogJson.getOrElse(no, Nil)))

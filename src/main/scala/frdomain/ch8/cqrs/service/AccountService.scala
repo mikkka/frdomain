@@ -2,16 +2,13 @@ package frdomain.ch8
 package cqrs
 package service
 
+import cats.free.Free
+import cats.~>
+import cats.syntax.either._
 import org.joda.time.DateTime
-import scalaz._
-import Scalaz._
-import scalaz.concurrent.Task
-import Task._
-import \/._
-
 import cqrs.lib._
-
 import common._
+import monix.eval.Task
 
 case class Opened(no: String, name: String, openingDate: Option[DateTime], at: DateTime = today) extends Event[Account]
 case class Closed(no: String, closeDate: Option[DateTime], at: DateTime = today) extends Event[Account]
@@ -68,18 +65,18 @@ object RepositoryBackedAccountInterpreter extends RepositoryBackedInterpreter {
     override def apply[A](action: Event[A]): Task[A] = handleCommand(action)
   }
 
-  private def closed(a: Account): Error \/ Account =
-    if (a.dateOfClosing isDefined) s"Account ${a.no} is closed".left
-    else a.right
+  private def closed(a: Account): Either[Error, Account] =
+    if (a.dateOfClosing isDefined) s"Account ${a.no} is closed".asLeft
+    else a.asRight
 
-  private def beforeOpeningDate(a: Account, cd: Option[DateTime]): Error \/ Account =
+  private def beforeOpeningDate(a: Account, cd: Option[DateTime]): Either[Error, Account] =
     if (a.dateOfOpening isBefore cd.getOrElse(today)) 
-      s"Cannot close at a date earlier than opening date ${a.dateOfOpening}".left
-    else a.right
+      s"Cannot close at a date earlier than opening date ${a.dateOfOpening}".asLeft
+    else a.asRight
 
-  private def sufficientFundsToDebit(a: Account, amount: Amount): Error \/ Account =
-    if (a.balance.amount < amount) s"insufficient fund to debit $amount from ${a.no}".left
-    else a.right
+  private def sufficientFundsToDebit(a: Account, amount: Amount): Either[Error, Account] =
+    if (a.balance.amount < amount) s"insufficient fund to debit $amount from ${a.no}".asLeft
+    else a.asRight
 
   private def validateClose(no: String, cd: Option[DateTime]) = for {
     l <- events(no)
@@ -103,8 +100,8 @@ object RepositoryBackedAccountInterpreter extends RepositoryBackedInterpreter {
     
   def validateOpen(no: String) = {
     val events = eventLog.get(no)
-    if (events nonEmpty) s"Account with no = $no already exists".left
-    else no.right
+    if (events nonEmpty) s"Account with no = $no already exists".asLeft
+    else no.asRight
   }
 
   private def handleCommand[A](e: Event[A]): Task[A] = e match {

@@ -1,10 +1,10 @@
 package frdomain.ch5
 package free
 
-import scalaz._
-import Scalaz._
 
-import java.util.{ Date, Calendar }
+import java.util.{Calendar, Date}
+
+import cats.Show
 
 object common {
   type Amount = BigDecimal
@@ -20,7 +20,7 @@ case class Account(no: String, name: String, dateOfOpening: Date = today, dateOf
   balance: Balance = Balance(0))
 
 object Account {
-  implicit val showAccount: Show[Account] = Show.shows { case a: Account => a.toString }
+  implicit val showAccount: Show[Account] = Show.apply { case a: Account => a.toString }
 }
 
 
